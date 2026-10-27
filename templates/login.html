@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Citizen Login - Cop Friendly</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Citizen Login</h1>
+
+        <p>Login to access your Cop Friendly account.</p>
+
+        <form method="POST" action="/login">
+
+            <label>Email</label><br>
+
+            <input type="email"
+                   name="email"
+                   placeholder="Enter your email"
+                   required>
+
+            <br><br>
+
+            <label>Password</label><br>
+
+            <input type="password"
+                   name="password"
+                   placeholder="Enter your password"
+                   required>
+
+            <br><br>
+
+            <button type="submit">
+                Login
+            </button>
+
+        </form>
+
+        <p>Don't have an account?</p>
+
+        <a href="/register">
+            <button>Register</button>
+        </a>
+
+        <br><br>
+
+        <a href="/citizen">
+            <button>Back to Citizen Portal</button>
+        </a>
+
+    </div>
+
+</body>
+</html>

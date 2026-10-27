@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Track Complaint - Cop Friendly</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Track Your Complaint</h1>
+
+        <p>
+            View the status of your submitted complaints.
+        </p>
+
+        <form method="POST" action="/track">
+
+            <button type="submit">
+                Track My Complaints
+            </button>
+
+        </form>
+
+        <br>
+
+        <a href="/citizen">
+            <button>Back to Citizen Portal</button>
+        </a>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Citizen Portal - Cop Friendly</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Citizen Portal</h1>
+
+        <p>Welcome to the Cop Friendly Citizen Portal.</p>
+
+        <h2>What would you like to do?</h2>
+<a href="/register">
+    <button>Citizen Registration</button>
+</a>
+<a href="/login">
+    <button>Citizen Login</button>
+</a>
+        <<a href="/complaint">
+    <button>Submit a Complaint</button>
+</a>
+
+        <a href="/track">
+    <button>Track Complaint</button>
+</a>
+
+        <a href="/emergency">
+    <button>Emergency Help</button>
+</a>
+
+        <button>Ask AI Chatbot</button>
+
+    </div>
+
+</body>
+</html>

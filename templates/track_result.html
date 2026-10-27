@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complaint Status - Cop Friendly</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Complaint Status</h1>
+
+        {% if complaints %}
+
+            {% for complaint in complaints %}
+
+                <div class="complaint-card">
+
+                    <h2>Complaint #{{ complaint[0] }}</h2>
+
+                    <p>
+                        <strong>Type:</strong>
+                        {{ complaint[1] }}
+                    </p>
+
+                    <p>
+                        <strong>Location:</strong>
+                        {{ complaint[2] }}
+                    </p>
+
+                    <p>
+                        <strong>Description:</strong>
+                        {{ complaint[3] }}
+                    </p>
+
+                    <p>
+                        <strong>Status:</strong>
+                        {{ complaint[4] }}
+                    </p>
+
+                    <p>
+                        <strong>Submitted On:</strong>
+                        {{ complaint[5] }}
+                    </p>
+
+                </div>
+
+                <hr>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p>No complaints found for this name.</p>
+
+        {% endif %}
+
+        <br>
+
+        <a href="/citizen">
+            <button>Back to Citizen Portal</button>
+        </a>
+
+    </div>
+
+</body>
+</html>

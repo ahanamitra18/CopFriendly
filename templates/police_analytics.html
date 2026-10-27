@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crime Analytics - Cop Friendly</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Crime Analytics</h1>
+
+    <!-- Summary Statistics -->
+    <h2>Complaint Summary</h2>
+
+    <div class="complaint-card">
+        <h3>Total Complaints</h3>
+        <p><strong>{{ total_complaints }}</strong></p>
+    </div>
+
+    <div class="complaint-card">
+        <h3>Pending Complaints</h3>
+        <p><strong>{{ pending_complaints }}</strong></p>
+    </div>
+
+    <div class="complaint-card">
+        <h3>Resolved Complaints</h3>
+        <p><strong>{{ resolved_complaints }}</strong></p>
+    </div>
+
+    <hr>
+
+    <!-- Complaints by Type -->
+    <h2>Complaints by Type</h2>
+    <p>Distribution of complaints across different crime categories.</p>
+
+    {% if analytics %}
+        {% for item in analytics %}
+            <div class="complaint-card">
+                <h3>{{ item[0] }}</h3>
+                <p>
+                    <strong>Total Complaints:</strong>
+                    {{ item[1] }}
+                </p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No complaint data available by type.</p>
+    {% endif %}
+
+    <hr>
+
+    <!-- Complaints by Status -->
+    <h2>Complaints by Status</h2>
+    <p>Overview of complaint resolution progress.</p>
+
+    {% if status_analytics %}
+        {% for item in status_analytics %}
+            <div class="complaint-card">
+                <h3>{{ item[0] }}</h3>
+                <p>
+                    <strong>Total Complaints:</strong>
+                    {{ item[1] }}
+                </p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No complaint status data available.</p>
+    {% endif %}
+
+    <br>
+
+    <a href="/police">
+        <button type="button">Back to Police Portal</button>
+    </a>
+
+</div>
+
+</body>
+</html>
+

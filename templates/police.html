@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Police Portal - Cop Friendly</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Police Portal</h1>
+
+        <p>
+            Welcome to the Cop Friendly Police Portal.
+        </p>
+
+        <h2>Complaint Dashboard</h2>
+
+        <div class="complaint-card">
+
+            <h2>Total Complaints</h2>
+            <p>{{ total }}</p>
+
+        </div>
+
+        <div class="complaint-card">
+
+            <h2>Pending</h2>
+            <p>{{ pending }}</p>
+
+        </div>
+
+        <div class="complaint-card">
+
+            <h2>In Progress</h2>
+            <p>{{ in_progress }}</p>
+
+        </div>
+
+        <div class="complaint-card">
+
+            <h2>Resolved</h2>
+            <p>{{ resolved }}</p>
+
+        </div>
+
+        <h2>Police Services</h2>
+
+        <a href="/police/complaints">
+            <button>View Complaints</button>
+        </a>
+
+        <a href="/police/update">
+            <button>Update Complaint</button>
+        </a>
+        
+<a href="/police/ai">Police AI Assistant</a>
+
+
+        <a href="/police/analytics">
+            <button>Crime Analytics</button>
+        </a>
+
+        <a href="/emergency">
+            <button>Emergency Cases</button>
+        </a>
+
+        <br><br>
+
+        <a href="/">
+            <button>Back to Home</button>
+        </a>
+
+    </div>
+
+</body>
+</html>
+
+

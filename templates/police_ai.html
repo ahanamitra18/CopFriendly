@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police AI Assistant - Cop Friendly</title>
+</head>
+<body>
+    <h1>Police AI Assistant</h1>
+
+    <p>
+        Ask questions about complaints stored in the Cop Friendly database.
+    </p>
+
+    <form action="/police/ai" method="POST">
+        <label for="question">Enter your question:</label>
+        <br><br>
+
+        <textarea
+            id="question"
+            name="question"
+            rows="4"
+            cols="50"
+            placeholder="Example: Show me all high urgency complaints"
+            required
+        ></textarea>
+
+        <br><br>
+        <button type="submit">Ask AI Assistant</button>
+    </form>
+
+    {% if question %}
+        <h2>Your Question</h2>
+        <p>{{ question }}</p>
+    {% endif %}
+
+    {% if answer %}
+        <h2>AI Assistant Response</h2>
+        <div style="white-space: pre-wrap;">{{ answer }}</div>
+    {% endif %}
+
+    <br>
+    <a href="/police">Back to Police Dashboard</a>
+</body>
+</html>

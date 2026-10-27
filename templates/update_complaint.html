@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update Complaint - Cop Friendly</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Update Complaint</h1>
+
+    <form method="POST">
+
+        <label>Complaint ID</label><br>
+
+        <input type="number"
+               name="complaint_id"
+               placeholder="Enter complaint ID"
+               required>
+
+        <br><br>
+
+        <label>New Status</label><br>
+
+        <select name="status" required>
+
+            <option value="">Select Status</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+
+        </select>
+
+        <br><br>
+
+        <button type="submit">
+            Update Status
+        </button>
+
+    </form>
+
+    <br>
+
+    <a href="/police">
+        <button>Back to Police Portal</button>
+    </a>
+
+</div>
+
+</body>
+</html>
