@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from ai_agent import analyze_complaint
 from html import escape
 from police_ai_agent import ask_police_ai
-
+from citizen_ai_agent import ask_citizen_ai
 load_dotenv()
 
 app = Flask(__name__)
@@ -548,6 +548,25 @@ def police_ai():
         "police_ai.html",
         question=question,
         answer=answer
+    )
+
+@app.route("/citizen/chatbot", methods=["GET", "POST"])
+def citizen_chatbot():
+    reply = None
+    question = ""
+
+    if request.method == "POST":
+        question = request.form.get("question", "").strip()
+
+        if question:
+            reply = ask_citizen_ai(question)
+        else:
+            reply = "Please enter a question."
+
+    return render_template(
+        "citizen_chatbot.html",
+        reply=reply,
+        question=question
     )
 
 

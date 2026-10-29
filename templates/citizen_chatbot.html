@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen AI Chatbot | Cop Friendly</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .chat-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .header {
+            background: #123b63;
+            color: white;
+            padding: 24px;
+        }
+
+        .header h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+        }
+
+        .header p {
+            margin: 0;
+            color: #dbeafe;
+            line-height: 1.5;
+        }
+
+        .messages {
+            min-height: 250px;
+            max-height: 450px;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .message {
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .bot {
+            background: #eaf2fb;
+            margin-right: 35px;
+        }
+
+        .user {
+            background: #dbeafe;
+            margin-left: 35px;
+        }
+
+        .label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #334155;
+        }
+
+        .chat-form {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[name="question"] {
+            flex: 1;
+            min-width: 0;
+            padding: 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        button {
+            background: #123b63;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 20px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:hover {
+            background: #1d4f7c;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 16px;
+            color: #123b63;
+            text-decoration: none;
+        }
+
+        .note {
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 500px) {
+            .container {
+                margin: 10px auto;
+                padding: 10px;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            .bot {
+                margin-right: 10px;
+            }
+
+            .user {
+                margin-left: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a class="back-link" href="{{ url_for('citizen') }}">
+            &larr; Back to Citizen Portal
+        </a>
+
+        <div class="chat-card">
+            <div class="header">
+                <h1>Citizen AI Assistant</h1>
+                <p>
+                    Ask questions about registration, complaint submission,
+                    tracking, and using Cop Friendly.
+                </p>
+            </div>
+
+            <div class="messages" aria-live="polite">
+                <div class="message bot">
+                    <span class="label">AI Assistant</span>
+                    Hello! How can I help you use the Cop Friendly platform today?
+                </div>
+
+                {% if question %}
+                <div class="message user">
+                    <span class="label">You</span>{{ question }}
+                </div>
+                {% endif %}
+
+                {% if reply %}
+                <div class="message bot">
+                    <span class="label">AI Assistant</span>{{ reply }}
+                </div>
+                {% endif %}
+            </div>
+
+            <form class="chat-form" method="POST"
+                  action="{{ url_for('citizen_chatbot') }}">
+                <div class="input-row">
+                    <input
+                        type="text"
+                        name="question"
+                        placeholder="Type your question..."
+                        maxlength="1000"
+                        required
+                        autocomplete="off"
+                        aria-label="Your question"
+                    >
+                    <button type="submit">Send</button>
+                </div>
+
+                <p class="note">
+                    AI responses may be inaccurate. Do not enter passwords
+                    or sensitive personal information. For an immediate
+                    emergency in India, call 112.
+                </p>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
