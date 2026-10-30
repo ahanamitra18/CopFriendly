@@ -1,7 +1,7 @@
 
+import os
 import mysql.connector
 import ollama
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,7 +16,7 @@ def get_db_connection():
     )
 
 
-def get_all_complaints():   
+def get_all_complaints():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -29,7 +29,6 @@ def get_all_complaints():
             ORDER BY created_at DESC
         """)
         return cursor.fetchall()
-
     finally:
         cursor.close()
         connection.close()
@@ -49,25 +48,77 @@ def get_high_urgency_complaints():
             ORDER BY created_at DESC
         """)
         return cursor.fetchall()
-
     finally:
         cursor.close()
         connection.close()
 
 
-def ask_police_ai(question):
-    """
-    Retrieve complaint records from MySQL and generate
-    a response using the local Ollama model.
-    """
+def get_status_counts():
+    connection = get_db_connection()
+    cursor = connection.cursor()
 
+    try:
+        cursor.execute("""
+            SELECT status, COUNT(*)
+            FROM complaints
+            GROUP BY status
+        """)
+        counts = dict(cursor.fetchall())
+
+        return {
+            "Pending": counts.get("Pending", 0),
+            "In Progress": counts.get("In Progress", 0),
+            "Resolved": counts.get("Resolved", 0)
+        }
+    finally:
+        cursor.close()
+        connection.close()
+
+
+def format_records(complaints):
+    records = []
+
+    for c in complaints:
+        records.append(
+            f"Complaint ID: {c['complaint_id']}\n"
+            f"Complaint Type: {c['complaint_type']}\n"
+            f"Location: {c['location']}\n"
+            f"Description: {c['description']}\n"
+            f"Status: {c['status']}\n"
+            f"AI Crime Type: {c.get('ai_crime_type') or 'Not available'}\n"
+            f"AI Urgency: {c.get('ai_urgency') or 'Not available'}\n"
+            f"AI Reason: {c.get('ai_reason') or 'Not available'}"
+        )
+
+    return "\n\n".join(records)
+
+
+def ask_police_ai(question):
     question_lower = question.lower()
+
+    # Status counts must come directly from MySQL.
+    if any(word in question_lower for word in [
+        "how many", "count", "number of", "status summary",
+        "complaint statistics", "complaint stats"
+    ]) and any(word in question_lower for word in [
+        "complaint", "pending", "resolved", "progress", "status"
+    ]):
+        counts = get_status_counts()
+        total = sum(counts.values())
+
+        return (
+            "Current Complaint Status Summary\n\n"
+            f"Total complaints: {total}\n"
+            f"Pending: {counts['Pending']}\n"
+            f"In Progress: {counts['In Progress']}\n"
+            f"Resolved: {counts['Resolved']}\n\n"
+            "These counts are retrieved directly from MySQL."
+        )
 
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
     try:
-        # Pending cybercrime complaints
         if (
             ("cyber crime" in question_lower
              or "cybercrime" in question_lower)
@@ -83,7 +134,6 @@ def ask_police_ai(question):
                 ORDER BY created_at DESC
             """)
 
-        # High-urgency complaints
         elif (
             "high urgency" in question_lower
             or "high-urgency" in question_lower
@@ -98,7 +148,6 @@ def ask_police_ai(question):
                 ORDER BY created_at DESC
             """)
 
-        # All pending complaints
         elif "pending" in question_lower:
             cursor.execute("""
                 SELECT complaint_id, complaint_type, location,
@@ -109,7 +158,6 @@ def ask_police_ai(question):
                 ORDER BY created_at DESC
             """)
 
-        # All complaints
         else:
             cursor.execute("""
                 SELECT complaint_id, complaint_type, location,
@@ -128,61 +176,42 @@ def ask_police_ai(question):
     if not complaints:
         return "No complaints matched your question in the database."
 
-    # Create a reliable list directly from the database records.
-    complaint_list = []
+    database_results = format_records(complaints)
 
-    for complaint in complaints:
-        complaint_list.append(
-            f"Complaint ID: {complaint['complaint_id']}\n"
-            f"Complaint Type: {complaint['complaint_type']}\n"
-            f"Location: {complaint['location']}\n"
-            f"Status: {complaint['status']}\n"
-            f"Description: {complaint['description']}\n"
-            f"AI Crime Type: {complaint['ai_crime_type'] or 'Not available'}\n"
-            f"AI Urgency: {complaint['ai_urgency'] or 'Not available'}\n"
-            f"AI Reason: {complaint['ai_reason'] or 'Not available'}"
-        )
-
-    database_results = "\n\n".join(complaint_list)
-
-    # Ask the AI to summarize the retrieved records.
     prompt = f"""
-You are the Police AI Assistant for the Cop Friendly platform.
+You are the Police AI Assistant for Cop Friendly.
 
 Officer's question:
 {question}
 
-The following {len(complaints)} complaint record(s) were retrieved
-from the MySQL database:
-
+Verified MySQL records:
 {database_results}
 
 Instructions:
-1. Summarize these records in clear, simple language.
-2. Do not invent facts or complaint records.
-3. Do not claim that records are missing unless the data shows that.
-4. Treat AI-generated urgency as a suggestion requiring human review.
-5. Keep the response concise.
+- Summarize only the supplied records.
+- Do not invent complaints or change their statuses.
+- Do not claim a status count unless it is directly supported by
+  the supplied records.
+- Treat AI urgency as a suggestion for human review.
+- Keep the answer concise.
 """
 
     try:
         response = ollama.chat(
             model="qwen2.5:3b",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}]
         )
-
         ai_summary = response["message"]["content"].strip()
 
     except Exception as error:
         print("Ollama error:", error)
-        ai_summary = "AI summary is temporarily unavailable."
+        ai_summary = (
+            "AI summary is unavailable. The database records "
+            "retrieved for this question are shown below."
+        )
 
-    # Always append every database record so none are omitted.
     return (
         f"Found {len(complaints)} matching complaint(s).\n\n"
         f"AI Summary:\n{ai_summary}\n\n"
-        f"Complete Database Records:\n\n{database_results}"
+        f"Database Records:\n\n{database_results}"
     )
-

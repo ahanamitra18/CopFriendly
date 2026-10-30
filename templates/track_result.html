@@ -1,70 +1,104 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Complaint Status - Cop Friendly</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 30px;
+            color: #222;
+        }
+        .container {
+            max-width: 750px;
+            margin: 30px auto;
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            color: #17365d;
+            margin-top: 0;
+        }
+        .field {
+            margin: 18px 0;
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+        }
+        .label {
+            font-weight: bold;
+            color: #444;
+        }
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #fff0c2;
+            color: #795500;
+            font-weight: bold;
+        }
+        a {
+            color: #174ea6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .empty {
+            color: #555;
+        }
+    </style>
 </head>
-
 <body>
-
     <div class="container">
-
-        <h1>Complaint Status</h1>
+        <h1>My Complaint Status</h1>
 
         {% if complaints %}
-
             {% for complaint in complaints %}
+                <div class="card">
+                    <h2>Complaint #{{ complaint.complaint_id }}</h2>
 
-                <div class="complaint-card">
+                    <div class="field">
+                        <span class="label">Type:</span>
+                        {{ complaint.complaint_type }}
+                    </div>
 
-                    <h2>Complaint #{{ complaint[0] }}</h2>
+                    <div class="field">
+                        <span class="label">Location:</span>
+                        {{ complaint.location }}
+                    </div>
 
-                    <p>
-                        <strong>Type:</strong>
-                        {{ complaint[1] }}
-                    </p>
+                    <div class="field">
+                        <span class="label">Description:</span>
+                        {{ complaint.description }}
+                    </div>
 
-                    <p>
-                        <strong>Location:</strong>
-                        {{ complaint[2] }}
-                    </p>
+                    <div class="field">
+                        <span class="label">Status:</span>
+                        <span class="status">{{ complaint.status }}</span>
+                    </div>
 
-                    <p>
-                        <strong>Description:</strong>
-                        {{ complaint[3] }}
-                    </p>
-
-                    <p>
-                        <strong>Status:</strong>
-                        {{ complaint[4] }}
-                    </p>
-
-                    <p>
-                        <strong>Submitted On:</strong>
-                        {{ complaint[5] }}
-                    </p>
-
+                    <div class="field">
+                        <span class="label">Submitted On:</span>
+                        {{ complaint.created_at }}
+                    </div>
                 </div>
-
-                <hr>
-
             {% endfor %}
-
         {% else %}
-
-            <p>No complaints found for this name.</p>
-
+            <div class="card empty">
+                No complaints found for your account.
+            </div>
         {% endif %}
 
-        <br>
-
-        <a href="/citizen">
-            <button>Back to Citizen Portal</button>
-        </a>
-
+        <a href="{{ url_for('citizen') }}">Back to Citizen Portal</a>
     </div>
-
 </body>
 </html>

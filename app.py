@@ -1,26 +1,62 @@
 
 import os
-from dotenv import load_dotenv
-
-from flask import Flask, render_template, request, session, redirect, url_for
-import mysql.connector
-from werkzeug.security import generate_password_hash, check_password_hash
-from ai_agent import analyze_complaint
+from functools import wraps
 from html import escape
+
+import mysql.connector
+from dotenv import load_dotenv
+from flask import (
+    Flask,
+    render_template,
+    request,
+    session,
+    redirect,
+    url_for
+)
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
+
+from ai_agent import analyze_complaint
 from police_ai_agent import ask_police_ai
 from citizen_ai_agent import ask_citizen_ai
+
+
+# ---------------- CONFIGURATION ----------------
+
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-from functools import wraps
+
+if not app.secret_key:
+    raise RuntimeError(
+        "SECRET_KEY is missing. Set it in your local .env file."
+    )
+
+
+# ---------------- AUTHENTICATION DECORATORS ----------------
 
 def police_required(view_function):
     @wraps(view_function)
     def wrapped_view(*args, **kwargs):
         if "police_id" not in session:
             return redirect(url_for("police_login"))
+
         return view_function(*args, **kwargs)
+
+    return wrapped_view
+
+
+def citizen_required(view_function):
+    @wraps(view_function)
+    def wrapped_view(*args, **kwargs):
+        if "citizen_id" not in session:
+            return redirect(url_for("login"))
+
+        return view_function(*args, **kwargs)
+
     return wrapped_view
 
 
@@ -54,15 +90,14 @@ def citizen():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        phone = request.form.get("phone")
-        password = request.form.get("password")
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        password = request.form.get("password", "")
 
         if not name or not email or not password:
-            return "Please fill in all required fields."
+            return "Please fill in all required fields.", 400
 
-        # Hash the password before storing it.
         hashed_password = generate_password_hash(password)
 
         connection = get_db_connection()
@@ -72,22 +107,27 @@ def register():
             cursor.execute(
                 """
                 INSERT INTO citizens
-                (name, email, phone, password)
+                    (name, email, phone, password)
                 VALUES (%s, %s, %s, %s)
                 """,
-                (name, email, phone, hashed_password)
+                (name, email, phone or None, hashed_password)
             )
 
             connection.commit()
-            return "Registration successful!"
+
+            return (
+                "Registration successful! "
+                '<a href="/login">Log in here</a>.'
+            )
 
         except mysql.connector.Error as error:
             connection.rollback()
             print("Registration error:", error)
+
             return (
-                "Registration failed. Check the details "
+                "Registration failed. Check your details "
                 "or try using another email."
-            )
+            ), 400
 
         finally:
             cursor.close()
@@ -101,11 +141,11 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
 
         if not email or not password:
-            return "Please enter your email and password."
+            return "Please enter your email and password.", 400
 
         connection = get_db_connection()
         cursor = connection.cursor()
@@ -119,41 +159,44 @@ def login():
                 """,
                 (email,)
             )
-
             citizen_record = cursor.fetchone()
 
         finally:
             cursor.close()
             connection.close()
 
-        # Verify the submitted password against the stored hash.
         if citizen_record and check_password_hash(
             citizen_record[2], password
         ):
+            session.clear()
             session["citizen_id"] = citizen_record[0]
             session["citizen_name"] = citizen_record[1]
 
-            return (
-                "Login successful! Welcome "
-                + escape(citizen_record[1])
-                + '. <a href="/citizen">Go to Citizen Portal</a>'
-            )
+            return redirect(url_for("citizen"))
 
-        return "Invalid email or password!"
+        return "Invalid email or password.", 401
 
     return render_template("login.html")
 
 
-# ---------------- POLICE DASHBOARD ----------------
+# ---------------- CITIZEN LOGOUT ----------------
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+# ---------------- POLICE LOGIN ----------------
 
 @app.route("/police/login", methods=["GET", "POST"])
 def police_login():
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
 
         if not email or not password:
-            return "Please enter your email and password."
+            return "Please enter your email and password.", 400
 
         connection = get_db_connection()
         cursor = connection.cursor()
@@ -168,28 +211,34 @@ def police_login():
                 (email,)
             )
             officer = cursor.fetchone()
+
         finally:
             cursor.close()
             connection.close()
 
         if officer and check_password_hash(officer[2], password):
+            session.clear()
             session["police_id"] = officer[0]
             session["police_name"] = officer[1]
 
-            return (
-                "Police login successful! Welcome "
-                + escape(officer[1])
-                + '. <a href="/police">Open Police Dashboard</a>'
-            )
+            return redirect(url_for("police"))
 
-        return "Invalid email or password!"
+        return "Invalid email or password.", 401
 
     return render_template("police_login.html")
+
+
+# ---------------- POLICE LOGOUT ----------------
+
 @app.route("/police/logout")
+@police_required
 def police_logout():
-    session.pop("police_id", None)
-    session.pop("police_name", None)
+    session.clear()
     return redirect(url_for("police_login"))
+
+
+# ---------------- POLICE DASHBOARD ----------------
+
 @app.route("/police")
 @police_required
 def police():
@@ -231,21 +280,20 @@ def police():
 # ---------------- COMPLAINT SUBMISSION + AI ANALYSIS ----------------
 
 @app.route("/complaint", methods=["GET", "POST"])
+@citizen_required
 def complaint():
-    if "citizen_id" not in session:
-        return "Please login first!"
-
     if request.method == "POST":
-        complaint_type = request.form.get("complaint_type")
-        location = request.form.get("location")
-        description = request.form.get("description")
+        complaint_type = request.form.get(
+            "complaint_type", ""
+        ).strip()
+        location = request.form.get("location", "").strip()
+        description = request.form.get("description", "").strip()
 
         if not complaint_type or not location or not description:
-            return "Please fill in all complaint fields."
+            return "Please fill in all complaint fields.", 400
 
         citizen_id = session["citizen_id"]
 
-        # Analyze the complaint using the local AI model.
         try:
             ai_analysis = analyze_complaint(description)
         except Exception as error:
@@ -273,8 +321,7 @@ def complaint():
         try:
             cursor.execute(
                 """
-                INSERT INTO complaints
-                (
+                INSERT INTO complaints (
                     citizen_id,
                     complaint_type,
                     location,
@@ -302,7 +349,7 @@ def complaint():
         except mysql.connector.Error as error:
             connection.rollback()
             print("Complaint submission error:", error)
-            return "Unable to submit your complaint. Please try again."
+            return "Unable to submit your complaint. Please try again.", 500
 
         finally:
             cursor.close()
@@ -319,7 +366,8 @@ def complaint():
             f"<pre style='white-space: pre-wrap;'>{escape(ai_analysis)}</pre>"
             "<p><strong>Note:</strong> AI-generated results are suggestions "
             "and should be verified by authorized personnel.</p>"
-            '<a href="/citizen">Back to Citizen Portal</a>'
+            '<a href="/citizen">Back to Citizen Portal</a> | '
+            '<a href="/track">Track My Complaints</a>'
             "</body></html>"
         )
 
@@ -329,44 +377,45 @@ def complaint():
 # ---------------- TRACK COMPLAINTS ----------------
 
 @app.route("/track", methods=["GET", "POST"])
+@citizen_required
 def track():
-    if "citizen_id" not in session:
-        return "Please login first!"
+    citizen_id = session["citizen_id"]
 
-    if request.method == "POST":
-        citizen_id = session["citizen_id"]
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
 
-        connection = get_db_connection()
-        cursor = connection.cursor()
-
-        try:
-            cursor.execute(
-                """
-                SELECT
-                    complaint_id,
-                    complaint_type,
-                    location,
-                    description,
-                    status,
-                    created_at
-                FROM complaints
-                WHERE citizen_id = %s
-                ORDER BY created_at DESC
-                """,
-                (citizen_id,)
-            )
-            complaints = cursor.fetchall()
-
-        finally:
-            cursor.close()
-            connection.close()
-
-        return render_template(
-            "track_result.html",
-            complaints=complaints
+    try:
+        cursor.execute(
+            """
+            SELECT
+                complaint_id,
+                complaint_type,
+                location,
+                description,
+                status,
+                created_at
+            FROM complaints
+            WHERE citizen_id = %s
+            ORDER BY created_at DESC
+            """,
+            (citizen_id,)
         )
+        complaints = cursor.fetchall()
+        print("LOGGED-IN CITIZEN ID:", citizen_id)
+        print("TRACKED COMPLAINTS:", complaints)
 
-    return render_template("track_complaint.html")
+    except mysql.connector.Error as error:
+        print("Complaint tracking error:", error)
+        return "Unable to retrieve your complaints. Please try again.", 500
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    return render_template(
+        "track_result.html",
+        complaints=complaints
+    )
 
 
 # ---------------- EMERGENCY PAGE ----------------
@@ -424,13 +473,14 @@ def police_complaints():
 @police_required
 def update_complaint():
     if request.method == "POST":
-        complaint_id = request.form.get("complaint_id")
-        status = request.form.get("status")
+        complaint_id = request.form.get("complaint_id", "").strip()
+        status = request.form.get("status", "").strip()
 
-        if not complaint_id or status not in [
-            "Pending", "In Progress", "Resolved"
-        ]:
-            return "Invalid complaint ID or status."
+        if (
+            not complaint_id.isdigit()
+            or status not in ["Pending", "In Progress", "Resolved"]
+        ):
+            return "Invalid complaint ID or status.", 400
 
         connection = get_db_connection()
         cursor = connection.cursor()
@@ -442,12 +492,12 @@ def update_complaint():
                 SET status = %s
                 WHERE complaint_id = %s
                 """,
-                (status, complaint_id)
+                (status, int(complaint_id))
             )
 
             if cursor.rowcount == 0:
                 connection.rollback()
-                return "Complaint not found or status unchanged."
+                return "Complaint not found or status unchanged.", 404
 
             connection.commit()
             return "Complaint status updated successfully!"
@@ -455,7 +505,7 @@ def update_complaint():
         except mysql.connector.Error as error:
             connection.rollback()
             print("Status update error:", error)
-            return "Unable to update complaint status."
+            return "Unable to update complaint status.", 500
 
         finally:
             cursor.close()
@@ -525,6 +575,7 @@ def police_analytics():
 # ---------------- POLICE AI ASSISTANT ----------------
 
 @app.route("/police/ai", methods=["GET", "POST"])
+@police_required
 def police_ai():
     question = ""
     answer = ""
@@ -550,7 +601,11 @@ def police_ai():
         answer=answer
     )
 
+
+# ---------------- CITIZEN AI CHATBOT ----------------
+
 @app.route("/citizen/chatbot", methods=["GET", "POST"])
+@citizen_required
 def citizen_chatbot():
     reply = None
     question = ""
@@ -558,10 +613,12 @@ def citizen_chatbot():
     if request.method == "POST":
         question = request.form.get("question", "").strip()
 
-        if question:
-            reply = ask_citizen_ai(question)
-        else:
+        if not question:
             reply = "Please enter a question."
+        elif len(question) > 1000:
+            reply = "Please keep your question under 1000 characters."
+        else:
+            reply = ask_citizen_ai(question)
 
     return render_template(
         "citizen_chatbot.html",
